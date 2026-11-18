@@ -1,37 +1,43 @@
 #!/usr/bin/env python3
-"""Write the entry image to the grader's output directory.
+"""make.fun news-image-20261118 entry.
 
-The image (a front page summing up the world's news of Wednesday
-18 November 2026) is stored in this repository as entry.png. This
-program copies it byte for byte to $MAKEFUN_OUTPUT_DIR/entry.png
-(default /output). It uses only the standard library, makes no
-network access, and writes identical bytes on every run.
+The entry is one picture: a newspaper front page that sums up the
+world news of Wednesday 18 November 2026. The picture is stored in
+this repository as entry.png. This program copies it, byte for byte,
+to the grader's output directory, $MAKEFUN_OUTPUT_DIR/entry.png
+(default /output).
+
+It only uses the Python standard library, makes no network requests,
+and writes the same bytes on every run.
 """
+
 import os
 import shutil
 import sys
-
-SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "entry.png")
-OUTPUT_DIR = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
-OUTPUT_PATH = os.path.join(OUTPUT_DIR, "entry.png")
-PNG_MAGIC = b"\x89PNG\r\n\x1a\n"
+from pathlib import Path
 
 
 def main() -> int:
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
-    shutil.copyfile(SOURCE, OUTPUT_PATH)
-    # Confirm the copy is whole: a PNG header and the source's byte count.
-    with open(OUTPUT_PATH, "rb") as fh:
-        data = fh.read()
-    if not data.startswith(PNG_MAGIC):
-        print("entry.png is not a PNG file", file=sys.stderr)
+    source = Path(__file__).resolve().parent / "entry.png"
+    output_dir = Path(os.environ.get("MAKEFUN_OUTPUT_DIR", "/output"))
+    target = output_dir / "entry.png"
+
+    if not source.is_file():
+        print(f"error: source image not found: {source}", file=sys.stderr)
         return 1
-    if len(data) != os.path.getsize(SOURCE):
-        print("copied file size differs from source", file=sys.stderr)
+
+    png_signature = b"\x89PNG\r\n\x1a\n"
+    with source.open("rb") as handle:
+        header = handle.read(len(png_signature))
+    if header != png_signature:
+        print(f"error: source image is not a PNG file: {source}", file=sys.stderr)
         return 1
-    print(f"wrote {OUTPUT_PATH} ({len(data)} bytes)")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, target)
+    print(f"wrote {target}")
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
